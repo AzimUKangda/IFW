@@ -297,7 +297,6 @@ x1=${1%/*}
 if [ $(ls $x1/failure | wc -l) -ge 1 ]; then
  #source ./appid.bash
  appid $x1
-               fi
  echo "Application ID: $aid"
  echo "In Progress..."
  echo "Application Started" >> ${aid}.log
