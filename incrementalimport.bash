@@ -6,7 +6,7 @@ sqoop_incremental_import(){
       host_name=$(grep -i 'hostName' $FILE  | cut -f2 -d'=')
       port_number=$(grep -i 'portNumber' $FILE  | cut -f2 -d'=')
       db_name=$(grep -i 'mysql_db_tb_check_col' $FILE  | cut -f2 -d'=')
-      hive_db_name=$(grep -i 'hive_db' $FILE  | cut -f2 -d'=')
+      hive_db_name=$(grep -i 'hivedb' $FILE  | cut -f2 -d'=')
       #hive_tb_name=$(grep -i 'hive_tb' $FILE  | cut -f2 -d'=')
       echo "Data Source: " $data_source >> ${2}.txt
       echo "User Name: " $user_name >> ${2}.txt
@@ -32,10 +32,17 @@ IFS='| ' read -r -a array <<< "$db_name"
                echo "Table Name : " $table_name >> ${2}.txt
                echo "Check Column : " $check_colm >> ${2}.txt
               
-                var=$(hive --hiveconf myvar=$hive_db_name.$hive_tb_name --hiveconf ccol=$check_colm  -e 'select max(${hiveconf:ccol}) from ${hiveconf:myvar}' 2>> ${2}.log)                            var2=-1
+               hive --hiveconf myvar=$hive_db_name.$hive_tb_name --hiveconf ccol=$check_colm  -e 'select max(${hiveconf:ccol}) from ${hiveconf:myvar}' 2>> ${2}.log 1>maxvalue.txt
+               sed -i.bak "/WARN/d" maxvalue.txt >> ${2}.log
+               var=$(<maxvalue.txt)
+               echo "var:$var"
+               var2=-1
                 nohup hive --hiveconf myvar=$hive_db_name.$hive_tb_name -e 'desc ${hiveconf:myvar};' 2>> ${2}.log 1>schema.txt
+                sed -i.bak "/WARN/d" schema.txt >> ${2}.log
                 nohup hive --hiveconf myvar=$hive_db_name.$hive_tb_name -e 'desc formatted ${hiveconf:myvar};' 2>> ${2}.log 1>schema_b.txt
+                sed -i.bak "/WARN/d" schema_b.txt >> ${2}.log    
                 awk NF schema.txt | sed 's/\t/,/g' | awk -F, '{print $1}' > schema_t.txt
+                sed -i.bak "/WARN/d" schema_t.txt >> ${2}.log 
                 found=$(fgrep -c "# Partition Information" schema_t.txt)
                 bucketnum=$(grep -n "Num Buckets" schema_b.txt| awk -F  ":" '{print $3}' | awk -F "\t" '{print $2}')
                 flag=0
@@ -163,7 +170,6 @@ begin=$(date +"%s")
 x1=${1%/*}
 
 if [ $(ls $x1/failure | wc -l) -ge 1 ]; then
-log)                            var2=-1
  # source ./appid.bash
  appid $x1
  echo "Application ID: $aid"
